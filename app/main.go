@@ -8,10 +8,17 @@ import (
 )
 
 func main() {
-	// TODO: Uncomment the code below to pass the first stage
-	fmt.Print("$ ")
 
-	command, err := bufio.NewReader(os.Stdin).ReadString('\n')
+	prompt, reader := "$ ", bufio.NewReader(os.Stdin)
+	for {
+		repl(prompt, reader)
+	}
+}
+
+func repl(prompt string, reader *bufio.Reader) {
+
+	fmt.Print(prompt)
+	command, err := reader.ReadString('\n')
 
 	if err != nil {
 		fmt.Println(err)
