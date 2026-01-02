@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 )
 
@@ -12,7 +13,7 @@ const (
 )
 
 var (
-	BUILTIN_COMMANDS map[string]bool = map[string]bool{
+	SHELL_BUILTIN_COMMANDS map[string]bool = map[string]bool{
 		"type": true,
 		"exit": true,
 		"echo": true,
@@ -63,13 +64,69 @@ func processEchoCommand(args []string) {
 	fmt.Println(strings.Join(args, SPACE))
 }
 
-func processTypeCommand(arg string) {
-	_, ok := BUILTIN_COMMANDS[arg]
-	if !ok {
-		fmt.Printf("%s: not found\n", arg)
+func processTypeCommand(commandName string) {
+	_, ok := SHELL_BUILTIN_COMMANDS[commandName]
+
+	if ok {
+		fmt.Printf("%s is a shell builtin\n", commandName)
 		return
 	}
 
-	fmt.Printf("%s is a shell builtin\n", arg)
+	execuatblePaths, isPathEnvSet := os.LookupEnv("PATH")
 
+	if isPathEnvSet {
+
+		for path := range strings.SplitSeq(execuatblePaths, ":") {
+			ok, commandFullPath := isExecutable(path, commandName)
+			if ok {
+				fmt.Printf("%s is %s\n", commandName, commandFullPath)
+				return
+			}
+		}
+
+	}
+
+	fmt.Printf("%s: not found\n", commandName)
+
+}
+
+func isExecutable(directoryPath string, target string) (bool, string) {
+
+	info, err := os.Stat(directoryPath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			// fmt.Printf("Invalid directory path: %s\n", directoryPath)
+		}
+		return false, ""
+	}
+
+	if !info.IsDir() {
+		return false, ""
+	}
+
+	matched := false
+	fullPath := ""
+
+	filepath.Walk(directoryPath, func(path string, info os.FileInfo, err error) error {
+
+		if err != nil {
+			return err
+		}
+
+		if info.IsDir() {
+			return nil
+		}
+
+		mode := info.Mode()
+
+		if target == info.Name() && mode&0100 != 0 {
+			matched = true
+			fullPath = path
+			return nil
+		}
+
+		return nil
+	})
+
+	return matched, fullPath
 }
