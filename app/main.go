@@ -111,13 +111,22 @@ func executeCommand(commandName string, args []string) {
 
 				cmd := exec.Command(commandFullPath, args...)
 				cmd.Args = combinedArgs
-				output, err := cmd.Output()
+				cmd.Stdout = os.Stdout
+				cmd.Stderr = os.Stderr
+				cmd.Stdin = os.Stdin
+
+				err := cmd.Run()
 				if err != nil {
 					fmt.Println(err)
-					return
 				}
 
-				fmt.Println(string(output))
+				// output, err := cmd.Output()
+				// if err != nil {
+				// 	fmt.Println(err)
+				// 	return
+				// }
+				//
+				// fmt.Println(string(output))
 				return
 			}
 		}
