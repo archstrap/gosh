@@ -106,7 +106,6 @@ func executeCommand(commandName string, args []string) {
 		for path := range strings.SplitSeq(execuatblePaths, ":") {
 			ok, commandFullPath := isExecutable(path, commandName)
 			if ok {
-				fmt.Printf("command Name: %s, args: %s\n", commandFullPath, strings.Join(args, " , "))
 				cmd := exec.Command(commandFullPath, args...)
 				output, err := cmd.Output()
 				if err != nil {
