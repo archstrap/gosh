@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 )
@@ -45,7 +46,7 @@ func repl(prompt string, reader *bufio.Reader) {
 		case "type":
 			processTypeCommand(args[0])
 		default:
-			fmt.Printf("%s: command not found\n", commandName)
+			executeCommand(commandName)
 		}
 
 	}
@@ -87,6 +88,39 @@ func processTypeCommand(commandName string) {
 	}
 
 	fmt.Printf("%s: not found\n", commandName)
+
+}
+
+func executeCommand(commandName string) {
+
+	_, ok := SHELL_BUILTIN_COMMANDS[commandName]
+
+	if ok {
+		return
+	}
+
+	execuatblePaths, isPathEnvSet := os.LookupEnv("PATH")
+
+	if isPathEnvSet {
+
+		for path := range strings.SplitSeq(execuatblePaths, ":") {
+			ok, commandFullPath := isExecutable(path, commandName)
+			if ok {
+				cmd := exec.Command(commandFullPath)
+				output, err := cmd.Output()
+				if err != nil {
+					fmt.Println(err)
+					return
+				}
+
+				fmt.Println(string(output))
+				return
+			}
+		}
+
+	}
+
+	fmt.Printf("%s: command not found\n", commandName)
 
 }
 
