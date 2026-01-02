@@ -46,7 +46,7 @@ func repl(prompt string, reader *bufio.Reader) {
 		case "type":
 			processTypeCommand(args[0])
 		default:
-			executeCommand(commandName)
+			executeCommand(commandName, args)
 		}
 
 	}
@@ -91,7 +91,7 @@ func processTypeCommand(commandName string) {
 
 }
 
-func executeCommand(commandName string) {
+func executeCommand(commandName string, args []string) {
 
 	_, ok := SHELL_BUILTIN_COMMANDS[commandName]
 
@@ -106,7 +106,7 @@ func executeCommand(commandName string) {
 		for path := range strings.SplitSeq(execuatblePaths, ":") {
 			ok, commandFullPath := isExecutable(path, commandName)
 			if ok {
-				cmd := exec.Command(commandFullPath)
+				cmd := exec.Command(commandFullPath, args...)
 				output, err := cmd.Output()
 				if err != nil {
 					fmt.Println(err)
