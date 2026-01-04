@@ -18,6 +18,7 @@ var (
 		"type": true,
 		"exit": true,
 		"echo": true,
+		"pwd":  true,
 	}
 )
 
@@ -45,6 +46,8 @@ func repl(prompt string, reader *bufio.Reader) {
 			processEchoCommand(args)
 		case "type":
 			processTypeCommand(args[0])
+		case "pwd":
+			processPwdCommand()
 		default:
 			executeCommand(commandName, args)
 		}
@@ -89,6 +92,14 @@ func processTypeCommand(commandName string) {
 
 	fmt.Printf("%s: not found\n", commandName)
 
+}
+
+func processPwdCommand() {
+	pwd, err := os.Getwd()
+	if err != nil {
+		fmt.Println("Unable to find the present working directory")
+	}
+	fmt.Println(pwd)
 }
 
 func executeCommand(commandName string, args []string) {
