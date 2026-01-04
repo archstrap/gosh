@@ -72,9 +72,8 @@ func processEchoCommand(args []string) {
 }
 
 func processTypeCommand(commandName string) {
-	_, ok := SHELL_BUILTIN_COMMANDS[commandName]
 
-	if ok {
+	if SHELL_BUILTIN_COMMANDS[commandName] {
 		fmt.Printf("%s is a shell builtin\n", commandName)
 		return
 	}
@@ -131,9 +130,7 @@ func processCdCommand(arg []string) {
 
 func executeCommand(commandName string, args []string) {
 
-	_, ok := SHELL_BUILTIN_COMMANDS[commandName]
-
-	if ok {
+	if SHELL_BUILTIN_COMMANDS[commandName] {
 		return
 	}
 
