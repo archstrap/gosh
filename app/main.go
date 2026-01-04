@@ -106,8 +106,18 @@ func processPwdCommand() {
 }
 
 func processCdCommand(arg []string) {
-	directory := arg[0]
-	// handle absolute path
+
+	var directory string
+	if len(arg) > 0 {
+		directory = arg[0]
+	} else {
+		directory = "~"
+	}
+
+	if strings.HasPrefix(directory, "~") {
+		homeDirectory := os.Getenv("HOME")
+		directory = strings.ReplaceAll(directory, "~", homeDirectory)
+	}
 
 	info, err := os.Stat(directory)
 
