@@ -19,6 +19,7 @@ var (
 		"exit": true,
 		"echo": true,
 		"pwd":  true,
+		"cd":   true,
 	}
 )
 
@@ -48,6 +49,8 @@ func repl(prompt string, reader *bufio.Reader) {
 			processTypeCommand(args[0])
 		case "pwd":
 			processPwdCommand()
+		case "cd":
+			processCdCommand(args)
 		default:
 			executeCommand(commandName, args)
 		}
@@ -100,6 +103,20 @@ func processPwdCommand() {
 		fmt.Println("Unable to find the present working directory")
 	}
 	fmt.Println(pwd)
+}
+
+func processCdCommand(arg []string) {
+	directory := arg[0]
+	// handle absolute path
+
+	info, err := os.Stat(directory)
+
+	if err != nil || !info.IsDir() {
+		fmt.Printf("cd: %s: No such file or directory\n", directory)
+	}
+
+	os.Chdir(directory)
+
 }
 
 func executeCommand(commandName string, args []string) {
