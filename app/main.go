@@ -98,12 +98,50 @@ func repl(prompt string, reader *bufio.Reader) {
 }
 
 func SplitCommandDetails(commandDetails string) (string, []string) {
-	parts := strings.Split(strings.TrimRight(commandDetails, "\n"), SPACE)
+	parts := parseInput(commandDetails)
 	if len(parts) > 1 {
 		return parts[0], parts[1:]
 	}
 
 	return parts[0], []string{}
+}
+
+func parseInput(ip string) []string {
+
+	ip = strings.TrimSpace(ip)
+	args := make([]string, 0)
+	startQuote := false
+	var temp strings.Builder
+	for _, x := range ip {
+
+		switch x {
+		case '\'':
+			// we got the starting single quote
+			if !startQuote {
+				startQuote = true
+			} else { // we got the ending single quote
+				startQuote = false
+			}
+		case ' ':
+			if startQuote {
+				temp.WriteRune(x)
+			} else if temp.Len() > 0 {
+				args = append(args, temp.String())
+				temp.Reset()
+			}
+
+		default:
+			temp.WriteRune(x)
+		}
+	}
+
+	if temp.Len() > 0 {
+		args = append(args, temp.String())
+		temp.Reset()
+	}
+
+	return args
+
 }
 
 func processEchoCommand(args []string) {
