@@ -98,7 +98,10 @@ func repl(prompt string, reader *bufio.Reader) {
 }
 
 func SplitCommandDetails(commandDetails string) (string, []string) {
-	parts := parseInput(commandDetails)
+	parts, err := Split(commandDetails)
+	if err != nil {
+		fmt.Println("Unable to parse input commands")
+	}
 	if len(parts) > 1 {
 		return parts[0], parts[1:]
 	}
