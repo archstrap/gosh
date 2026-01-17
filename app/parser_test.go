@@ -70,3 +70,35 @@ func TestSplitWithSingleQuoteString(t *testing.T) {
 	}
 
 }
+
+func TestSplitWithDoubleQuoteString(t *testing.T) {
+
+	input := []string{`"Hello     World"`, `Hello""World`, `"Hello"    "World"`, `"'Hello      World'"`, `"Hello""World"`}
+	want := []TestCase{
+		NewTestCase(1, []string{`Hello     World`}),
+		NewTestCase(1, []string{`HelloWorld`}),
+		NewTestCase(2, []string{`Hello`, `World`}),
+		NewTestCase(1, []string{`'Hello      World'`}),
+		NewTestCase(1, []string{`HelloWorld`}),
+	}
+
+	for tt := range input {
+
+		got, err := Split(input[tt])
+		if err != nil {
+			t.Error(err)
+		}
+
+		if len(got) != want[tt].length {
+			t.Errorf("Split(%q),  Got: %v, Want: %v", input[tt], got, want[tt])
+		}
+
+		for tti := range got {
+			if want[tt].value[tti] != got[tti] {
+				t.Errorf("Split(%q),  Got: %v, Want: %v", input[tt], got, want[tt])
+			}
+		}
+
+	}
+
+}
