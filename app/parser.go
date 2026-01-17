@@ -22,6 +22,7 @@ const (
 	spaceRunes            = " \t\r\n"
 	nonEscapingQuoteRunes = `'`
 	escapinngQuoteRunes   = `"`
+	escapeRunes           = `\`
 )
 
 const (
@@ -29,6 +30,7 @@ const (
 	spaceRuneClass
 	nonEscapingQuoteRuneClass
 	escapinngQuoteRuneClass
+	escapeRuneClass
 	eofRuneClass
 )
 
@@ -37,6 +39,7 @@ const (
 	inWordState
 	nonEscapingQuoteState
 	escapingQuoteState
+	escapeState
 )
 
 const (
@@ -60,6 +63,7 @@ func NewDefaultClassifier() TokenClassifier {
 	tc.AddClassifier(spaceRunes, spaceRuneClass)
 	tc.AddClassifier(nonEscapingQuoteRunes, nonEscapingQuoteRuneClass)
 	tc.AddClassifier(escapinngQuoteRunes, escapinngQuoteRuneClass)
+	tc.AddClassifier(escapeRunes, escapeRuneClass)
 	return tc
 }
 
@@ -118,6 +122,9 @@ func (tr *Tokenizer) scan() (*Token, error) {
 			case escapinngQuoteRuneClass:
 				state = escapingQuoteState
 				tokenType = wordToken
+			case escapeRuneClass:
+				state = escapeState
+				tokenType = wordToken
 			default:
 				state = inWordState
 				tokenType = wordToken
@@ -133,6 +140,8 @@ func (tr *Tokenizer) scan() (*Token, error) {
 				state = nonEscapingQuoteState
 			case escapinngQuoteRuneClass:
 				state = escapingQuoteState
+			case escapeRuneClass:
+				state = escapeState
 			default:
 				tokenType = wordToken
 				value = append(value, nextRune)
@@ -154,6 +163,14 @@ func (tr *Tokenizer) scan() (*Token, error) {
 			case escapinngQuoteRuneClass:
 				state = inWordState
 			default:
+				value = append(value, nextRune)
+			}
+		case escapeState:
+			switch nextRuneType {
+			case eofRuneClass:
+				return nil, fmt.Errorf("EOF after escape character")
+			default:
+				state = inWordState
 				value = append(value, nextRune)
 			}
 		default:
