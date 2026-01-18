@@ -105,9 +105,10 @@ func TestSplitWithDoubleQuoteString(t *testing.T) {
 
 func TestSplitWithEscapeCharacterString(t *testing.T) {
 
-	input := []string{`world\ \ \ \ \ \ script`}
+	input := []string{`world\ \ \ \ \ \ script`, `"shell'hello'\\'example"`}
 	want := []TestCase{
 		NewTestCase(1, []string{`world      script`}),
+		NewTestCase(1, []string{`shell'hello'\'example`}),
 	}
 
 	for tt := range input {
