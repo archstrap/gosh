@@ -109,7 +109,7 @@ func TestSplitWithEscapeCharacterString(t *testing.T) {
 		`world\ \ \ \ \ \ script`,
 		`"shell'hello'\\'example"`,
 		`"/tmp/ant/\"f 38\"" "/tmp/ant/\"f\\93\""`,
-		`"/tmp/ant/'f 17'" "/tmp/ant/'f  \\39'" "/tmp/ant/'f \\16\\'"`,
+		`"/tmp/ant/'f 17'" "/tmp/ant/'f  \39'" "/tmp/ant/'f \16\'"`,
 	}
 	want := []TestCase{
 		NewTestCase(1, []string{`world      script`}),

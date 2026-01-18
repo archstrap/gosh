@@ -49,10 +49,9 @@ const (
 
 var (
 	special_rune map[string]bool = map[string]bool{
-		nonEscapingQuoteRunes: true,
-		escapinngQuoteRunes:   true,
-		escapeRunes:           true,
-		`$`:                   true,
+		escapinngQuoteRunes: true,
+		escapeRunes:         true,
+		`$`:                 true,
 	}
 )
 
