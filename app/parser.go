@@ -39,6 +39,7 @@ const (
 	inWordState
 	nonEscapingQuoteState
 	escapingQuoteState
+	quotedEscapingState
 	escapeState
 )
 
@@ -162,6 +163,8 @@ func (tr *Tokenizer) scan() (*Token, error) {
 				return NewToken(string(value), tokenType), nil
 			case escapingQuoteRuneClass:
 				state = inWordState
+			case escapeRuneClass:
+				state = quotedEscapingState
 			default:
 				value = append(value, nextRune)
 			}
@@ -171,6 +174,14 @@ func (tr *Tokenizer) scan() (*Token, error) {
 				return nil, fmt.Errorf("EOF after escape character")
 			default:
 				state = inWordState
+				value = append(value, nextRune)
+			}
+		case quotedEscapingState:
+			switch nextRuneType {
+			case eofRuneClass:
+				return nil, fmt.Errorf("EOF found while expecting a closing quote")
+			default:
+				state = escapingQuoteState
 				value = append(value, nextRune)
 			}
 		default:
