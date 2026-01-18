@@ -29,7 +29,7 @@ const (
 	unknownRuneClass runeTokenClass = iota
 	spaceRuneClass
 	nonEscapingQuoteRuneClass
-	escapinngQuoteRuneClass
+	escapingQuoteRuneClass
 	escapeRuneClass
 	eofRuneClass
 )
@@ -62,7 +62,7 @@ func NewDefaultClassifier() TokenClassifier {
 	tc := TokenClassifier{}
 	tc.AddClassifier(spaceRunes, spaceRuneClass)
 	tc.AddClassifier(nonEscapingQuoteRunes, nonEscapingQuoteRuneClass)
-	tc.AddClassifier(escapinngQuoteRunes, escapinngQuoteRuneClass)
+	tc.AddClassifier(escapinngQuoteRunes, escapingQuoteRuneClass)
 	tc.AddClassifier(escapeRunes, escapeRuneClass)
 	return tc
 }
@@ -119,7 +119,7 @@ func (tr *Tokenizer) scan() (*Token, error) {
 			case nonEscapingQuoteRuneClass:
 				state = nonEscapingQuoteState
 				tokenType = wordToken
-			case escapinngQuoteRuneClass:
+			case escapingQuoteRuneClass:
 				state = escapingQuoteState
 				tokenType = wordToken
 			case escapeRuneClass:
@@ -138,7 +138,7 @@ func (tr *Tokenizer) scan() (*Token, error) {
 				return NewToken(string(value), tokenType), nil
 			case nonEscapingQuoteRuneClass:
 				state = nonEscapingQuoteState
-			case escapinngQuoteRuneClass:
+			case escapingQuoteRuneClass:
 				state = escapingQuoteState
 			case escapeRuneClass:
 				state = escapeState
@@ -160,7 +160,7 @@ func (tr *Tokenizer) scan() (*Token, error) {
 			switch nextRuneType {
 			case eofRuneClass:
 				return NewToken(string(value), tokenType), nil
-			case escapinngQuoteRuneClass:
+			case escapingQuoteRuneClass:
 				state = inWordState
 			default:
 				value = append(value, nextRune)
