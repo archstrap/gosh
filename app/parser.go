@@ -47,6 +47,15 @@ const (
 	wordToken TokenType = iota
 )
 
+var (
+	special_rune map[string]bool = map[string]bool{
+		nonEscapingQuoteRunes: true,
+		escapinngQuoteRunes:   true,
+		escapeRunes:           true,
+		`$`:                   true,
+	}
+)
+
 type Token struct {
 	value     string
 	tokenType TokenType
@@ -89,6 +98,7 @@ type Tokenizer struct {
 func (tr *Tokenizer) scan() (*Token, error) {
 
 	state := startState
+	var prevEscapeRune rune
 	var value []rune
 	var tokenType TokenType
 
@@ -160,11 +170,12 @@ func (tr *Tokenizer) scan() (*Token, error) {
 		case escapingQuoteState:
 			switch nextRuneType {
 			case eofRuneClass:
-				return NewToken(string(value), tokenType), nil
+				return nil, fmt.Errorf("EOF after escape character")
 			case escapingQuoteRuneClass:
 				state = inWordState
 			case escapeRuneClass:
 				state = quotedEscapingState
+				prevEscapeRune = nextRune
 			default:
 				value = append(value, nextRune)
 			}
@@ -182,6 +193,9 @@ func (tr *Tokenizer) scan() (*Token, error) {
 				return nil, fmt.Errorf("EOF found while expecting a closing quote")
 			default:
 				state = escapingQuoteState
+				if !special_rune[string(nextRune)] {
+					value = append(value, prevEscapeRune)
+				}
 				value = append(value, nextRune)
 			}
 		default:

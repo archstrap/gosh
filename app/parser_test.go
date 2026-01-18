@@ -105,10 +105,17 @@ func TestSplitWithDoubleQuoteString(t *testing.T) {
 
 func TestSplitWithEscapeCharacterString(t *testing.T) {
 
-	input := []string{`world\ \ \ \ \ \ script`, `"shell'hello'\\'example"`}
+	input := []string{
+		`world\ \ \ \ \ \ script`,
+		`"shell'hello'\\'example"`,
+		`"/tmp/ant/\"f 38\"" "/tmp/ant/\"f\\93\""`,
+		`"/tmp/ant/'f 17'" "/tmp/ant/'f  \\39'" "/tmp/ant/'f \\16\\'"`,
+	}
 	want := []TestCase{
 		NewTestCase(1, []string{`world      script`}),
 		NewTestCase(1, []string{`shell'hello'\'example`}),
+		NewTestCase(2, []string{`/tmp/ant/"f 38"`, `/tmp/ant/"f\93"`}),
+		NewTestCase(3, []string{`/tmp/ant/'f 17'`, `/tmp/ant/'f  \39'`, `/tmp/ant/'f \16\'`}),
 	}
 
 	for tt := range input {
