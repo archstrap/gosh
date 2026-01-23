@@ -23,6 +23,8 @@ const (
 	nonEscapingQuoteRunes = `'`
 	escapinngQuoteRunes   = `"`
 	escapeRunes           = `\`
+	ioRedirectRunes       = `><`
+	digitRunes            = `0123456789`
 )
 
 const (
@@ -31,6 +33,8 @@ const (
 	nonEscapingQuoteRuneClass
 	escapingQuoteRuneClass
 	escapeRuneClass
+	ioRedirectRuneClass
+	digitRuneClass
 	eofRuneClass
 )
 
@@ -40,15 +44,17 @@ const (
 	nonEscapingQuoteState
 	escapingQuoteState
 	quotedEscapingState
+	ioRedirectState
 	escapeState
 )
 
 const (
 	wordToken TokenType = iota
+	ioRedirectionToken
 )
 
 var (
-	special_rune map[string]bool = map[string]bool{
+	specialRune map[string]bool = map[string]bool{
 		escapinngQuoteRunes: true,
 		escapeRunes:         true,
 		`$`:                 true,
@@ -58,6 +64,21 @@ var (
 type Token struct {
 	value     string
 	tokenType TokenType
+}
+
+type Redirection struct {
+	fileName   string
+	appendOnly bool
+}
+
+func NewRedirection(fileName string) *Redirection {
+	return &Redirection{fileName: fileName}
+}
+
+type Command struct {
+	name         string
+	args         []string
+	redirections map[int]*Redirection
 }
 
 func NewToken(value string, tokenType TokenType) *Token {
@@ -72,6 +93,8 @@ func NewDefaultClassifier() TokenClassifier {
 	tc.AddClassifier(spaceRunes, spaceRuneClass)
 	tc.AddClassifier(nonEscapingQuoteRunes, nonEscapingQuoteRuneClass)
 	tc.AddClassifier(escapinngQuoteRunes, escapingQuoteRuneClass)
+	tc.AddClassifier(ioRedirectRunes, ioRedirectRuneClass)
+	tc.AddClassifier(digitRunes, digitRuneClass)
 	tc.AddClassifier(escapeRunes, escapeRuneClass)
 	return tc
 }
@@ -94,29 +117,33 @@ type Tokenizer struct {
 	classifier TokenClassifier
 }
 
+func (tr *Tokenizer) getRuneDetails() (rune, runeTokenClass, error) {
+	currentRune, _, err := tr.input.ReadRune()
+	currentRuneType := tr.classifier.ClassifyRune(currentRune)
+
+	if err == io.EOF {
+		err = nil
+		currentRuneType = eofRuneClass
+	}
+
+	return currentRune, currentRuneType, err
+
+}
+
 func (tr *Tokenizer) scan() (*Token, error) {
 
 	state := startState
 	var prevEscapeRune rune
 	var value []rune
 	var tokenType TokenType
-
-	//	Debug(Red, tr.classifier)
-
+	
 	for {
 
-		nextRune, _, err := tr.input.ReadRune()
-		nextRuneType := tr.classifier.ClassifyRune(nextRune)
+		nextRune, nextRuneType, err := tr.getRuneDetails()
 
-		//		Debug(Green, nextRune)
-
-		if err == io.EOF {
-			nextRuneType = eofRuneClass
-			err = nil
-		} else if err != nil {
+		if err != nil {
 			return nil, err
 		}
-		//		Debug(Blue, fmt.Sprintf("state:= %v", state))
 
 		switch state {
 		case startState:
@@ -135,6 +162,21 @@ func (tr *Tokenizer) scan() (*Token, error) {
 			case escapeRuneClass:
 				state = escapeState
 				tokenType = wordToken
+			case digitRuneClass:
+				value = append(value, nextRune)
+				_, nextToNextRuneType, _ := tr.getRuneDetails()
+				if nextToNextRuneType == ioRedirectRuneClass {
+					state = ioRedirectState
+					tokenType = ioRedirectionToken
+				} else {
+					state = inWordState
+					tokenType = wordToken
+				}
+				tr.input.UnreadRune()
+			case ioRedirectRuneClass:
+				state = ioRedirectState
+				tokenType = ioRedirectionToken
+				value = append(value, nextRune)
 			default:
 				state = inWordState
 				tokenType = wordToken
@@ -152,6 +194,9 @@ func (tr *Tokenizer) scan() (*Token, error) {
 				state = escapingQuoteState
 			case escapeRuneClass:
 				state = escapeState
+			case ioRedirectRuneClass:
+				tr.input.UnreadRune()
+				return NewToken(string(value), tokenType), nil
 			default:
 				tokenType = wordToken
 				value = append(value, nextRune)
@@ -192,10 +237,24 @@ func (tr *Tokenizer) scan() (*Token, error) {
 				return nil, fmt.Errorf("EOF found while expecting a closing quote")
 			default:
 				state = escapingQuoteState
-				if !special_rune[string(nextRune)] {
+				if !specialRune[string(nextRune)] {
 					value = append(value, prevEscapeRune)
 				}
 				value = append(value, nextRune)
+			}
+		case ioRedirectState:
+			switch nextRuneType {
+			case eofRuneClass:
+				return nil, fmt.Errorf("EOF while expecting a io redirection")
+			case ioRedirectRuneClass:
+				state = ioRedirectState
+				tokenType = ioRedirectionToken
+				value = append(value, nextRune)
+			case spaceRuneClass:
+				return NewToken(string(value), tokenType), nil
+			default:
+				tr.input.UnreadRune()
+				return NewToken(string(value), tokenType), nil
 			}
 		default:
 			return nil, fmt.Errorf("unexpected state: %v", state)
@@ -239,6 +298,83 @@ func (lx *Lexer) Next() (string, error) {
 			return "", fmt.Errorf("Unknown token type: %v", token.tokenType)
 		}
 	}
+}
+
+func (lx *Lexer) Parse() (*Token, error) {
+	return (*Tokenizer)(lx).Next()
+}
+
+func Parse(s string) Command {
+
+	lexer := NewLexer(s)
+	var tokens []*Token
+	for {
+		token, err := lexer.Parse()
+		if err == io.EOF {
+			break
+		} else if err != nil {
+			panic(err)
+		}
+		tokens = append(tokens, token)
+	}
+	var commandName string
+	var args []string
+	redirections := make(map[int]*Redirection)
+
+	position := 0
+
+	for position < len(tokens) {
+		token := tokens[position]
+		if position == 0 {
+			commandName = token.value
+			position++
+			continue
+		}
+
+		if token.tokenType == wordToken {
+			args = append(args, token.value)
+			position++
+			continue
+		}
+
+		if token.tokenType == ioRedirectionToken {
+			var fileName string
+			if position+1 < len(tokens) {
+				fileName = tokens[position+1].value
+			}
+
+			redirectionValue := strings.TrimSpace(token.value)
+			fileDescriptor := -1
+			appendOnly := false
+
+			switch redirectionValue {
+			case "<":
+				fileDescriptor = 0
+				appendOnly = false
+			case ">", "1>":
+				fileDescriptor = 1
+				appendOnly = false
+			case "2>":
+				fileDescriptor = 2
+				appendOnly = false
+			case ">>", "1>>":
+				fileDescriptor = 1
+				appendOnly = true
+			case "2>>":
+				fileDescriptor = 2
+				appendOnly = true
+
+			}
+
+			redirections[fileDescriptor] = &Redirection{fileName: fileName, appendOnly: appendOnly}
+			position += 2
+
+		}
+
+	}
+
+	return Command{name: commandName, args: args, redirections: redirections}
+
 }
 
 func Split(s string) ([]string, error) {

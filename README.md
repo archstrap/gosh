@@ -32,3 +32,9 @@ Note: This section is for stages 2 and beyond.
    `app/main.go`.
 1. Commit your changes and run `git push origin master` to submit your solution
    to CodeCrafters. Test output will be streamed to your terminal.
+
+<br>
+
+## Resources
+
+[os/exec patterns](https://www.dolthub.com/blog/2022-11-28-go-os-exec-patterns/)
