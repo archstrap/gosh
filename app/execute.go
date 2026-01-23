@@ -24,7 +24,6 @@ func executeCommand(commandDetails Command) {
 		fmt.Printf("%s: command not found\n", commandName)
 		return
 	}
-
 	for path := range strings.SplitSeq(executablePaths, ":") {
 		ok, commandFullPath := isExecutable(path, commandName)
 		if !ok {
@@ -33,11 +32,7 @@ func executeCommand(commandDetails Command) {
 		cmd := exec.Command(commandFullPath, args...)
 		setIO(&redirections, cmd)
 
-		err := cmd.Run()
-		if err != nil {
-			fmt.Println(err)
-		}
-
+		cmd.Run()
 		return
 	}
 
