@@ -25,10 +25,9 @@ func executeCommand(commandDetails Command) {
 		if !ok {
 			continue
 		}
-		combinedArgs := append([]string{commandName}, args...)
-		cmd := exec.Command(commandFullPath, combinedArgs...)
+		cmd := exec.Command(commandFullPath, args...)
 		setIO(&redirections, cmd)
-		cmd.Args = combinedArgs
+		cmd.Args = append([]string{commandName}, args...)
 
 		cmd.Run()
 		return
