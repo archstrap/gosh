@@ -14,10 +14,6 @@ func executeCommand(commandDetails Command) {
 	args := commandDetails.args
 	redirections := commandDetails.redirections
 
-	if ShellBuiltinCommands[commandName] {
-		return
-	}
-
 	executablePaths, isPathEnvSet := os.LookupEnv("PATH")
 
 	if !isPathEnvSet {
@@ -29,8 +25,10 @@ func executeCommand(commandDetails Command) {
 		if !ok {
 			continue
 		}
-		cmd := exec.Command(commandFullPath, args...)
+		combinedArgs := append([]string{commandName}, args...)
+		cmd := exec.Command(commandFullPath, combinedArgs...)
 		setIO(&redirections, cmd)
+		cmd.Args = combinedArgs
 
 		cmd.Run()
 		return

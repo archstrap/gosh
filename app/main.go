@@ -14,6 +14,7 @@ var (
 		"exit": true,
 		"pwd":  true,
 		"cd":   true,
+		"echo": true,
 	}
 )
 
