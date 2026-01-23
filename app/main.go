@@ -4,20 +4,14 @@ import (
 	"bufio"
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 )
 
-const (
-	SPACE string = " "
-)
-
 var (
-	SHELL_BUILTIN_COMMANDS map[string]bool = map[string]bool{
+	ShellBuiltinCommands = map[string]bool{
 		"type": true,
 		"exit": true,
-		"echo": true,
 		"pwd":  true,
 		"cd":   true,
 	}
@@ -34,97 +28,45 @@ func main() {
 	repl(prompt, reader)
 }
 
-func loadShellRC(path string) error {
-
-	file, err := os.Open(path)
-	if err != nil {
-		fmt.Printf("Unable to open %s, please check whether %s exists or not.\n", path, path)
-		return err
-	}
-
-	defer file.Close()
-
-	scanner := bufio.NewScanner(file)
-
-	for scanner.Scan() {
-
-		line := strings.TrimSpace(scanner.Text())
-
-		if "" == line || strings.HasPrefix(line, "#") {
-			continue
-		}
-
-		parts := strings.SplitN(line, "=", 2)
-		if len(parts) == 2 {
-			key := parts[0]
-			value := strings.Trim(parts[1], "'\"")
-			os.Setenv(key, value)
-		}
-
-	}
-
-	return nil
-
-}
-
 func repl(prompt string, reader *bufio.Reader) {
 
 	for {
 		fmt.Print(prompt)
 		command, err := reader.ReadString('\n')
-
 		if err != nil {
-			fmt.Println(err)
+			panic(err)
 		}
 
-		commandName, args := SplitCommandDetails(command)
+		commandDetails := Parse(command)
 
-		switch commandName {
+		switch commandDetails.name {
 		case "exit":
 			return
-		case "echo":
-			processEchoCommand(args)
 		case "type":
-			processTypeCommand(args[0])
+			processTypeCommand(commandDetails.args[0])
 		case "pwd":
 			processPwdCommand()
 		case "cd":
-			processCdCommand(args)
+			processCdCommand(commandDetails.args)
 		default:
-			executeCommand(commandName, args)
+			executeCommand(commandDetails)
 		}
 
 	}
-}
-
-func SplitCommandDetails(commandDetails string) (string, []string) {
-	parts, err := Split(commandDetails)
-	if err != nil {
-		fmt.Println("Unable to parse input commands")
-	}
-	if len(parts) > 1 {
-		return parts[0], parts[1:]
-	}
-
-	return parts[0], []string{}
-}
-
-func processEchoCommand(args []string) {
-	fmt.Println(strings.Join(args, SPACE))
 }
 
 func processTypeCommand(commandName string) {
 
-	if SHELL_BUILTIN_COMMANDS[commandName] {
+	if ShellBuiltinCommands[commandName] {
 		fmt.Printf("%s is a shell builtin\n", commandName)
 		return
 	}
 
-	execuatblePaths, isPathEnvSet := os.LookupEnv("PATH")
+	executablePaths, isPathEnvSet := os.LookupEnv("PATH")
 
 	if isPathEnvSet {
 
-		for path := range strings.SplitSeq(execuatblePaths, ":") {
+		for path := range strings.SplitSeq(executablePaths, ":") {
 			ok, commandFullPath := isExecutable(path, commandName)
 			if ok {
 				fmt.Printf("%s is %s\n", commandName, commandFullPath)
@@ -167,50 +109,6 @@ func processCdCommand(arg []string) {
 	}
 
 	os.Chdir(directory)
-
-}
-
-func executeCommand(commandName string, args []string) {
-
-	if SHELL_BUILTIN_COMMANDS[commandName] {
-		return
-	}
-
-	execuatblePaths, isPathEnvSet := os.LookupEnv("PATH")
-
-	if isPathEnvSet {
-
-		for path := range strings.SplitSeq(execuatblePaths, ":") {
-			ok, commandFullPath := isExecutable(path, commandName)
-			if ok {
-
-				combinedArgs := append([]string{commandName}, args...)
-
-				cmd := exec.Command(commandFullPath, args...)
-				cmd.Args = combinedArgs
-				cmd.Stdout = os.Stdout
-				cmd.Stderr = os.Stderr
-				cmd.Stdin = os.Stdin
-
-				err := cmd.Run()
-				if err != nil {
-					fmt.Println(err)
-				}
-
-				// output, err := cmd.Output()
-				// if err != nil {
-				// 	fmt.Println(err)
-				// 	return
-				// }
-				//
-				// fmt.Println(string(output))
-				return
-			}
-		}
-
-	}
-
-	fmt.Printf("%s: command not found\n", commandName)
 
 }
 
