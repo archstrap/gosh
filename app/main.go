@@ -19,6 +19,7 @@ var (
 		"cd":   true,
 		"echo": true,
 	}
+	bell string = "\x07"
 )
 
 func main() {
@@ -66,7 +67,11 @@ func repl(prompt string, terminalFd int, oldState *term.State) {
 		// Handling tab
 		case '\t':
 			suggestions := trie.SearchAll(command.String())
-			if len(suggestions) == 1 {
+
+			switch len(suggestions) {
+			case 0:
+				fmt.Print(bell)
+			case 1:
 				fmt.Print("\r")
 				command.Reset()
 				command.WriteString(fmt.Sprintf("%s ", suggestions[0]))
@@ -88,6 +93,12 @@ func repl(prompt string, terminalFd int, oldState *term.State) {
 			fmt.Print(prompt)
 		// Handling BackSpace and Del
 		case 127, 8:
+			if command.Len() > 0 {
+				s := command.String()
+				command.Reset()
+				command.WriteString(s[:len(s)-1])
+				fmt.Print("\033[D\033[K")
+			}
 
 		default:
 			command.WriteByte(typedCharacter)
