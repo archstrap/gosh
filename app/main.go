@@ -50,11 +50,12 @@ func repl(prompt string, terminalFd int, oldState *term.State) {
 	fmt.Print(prompt) // Print prompt once at start
 
 	reader := bufio.NewReader(os.Stdin)
+	var previousTypedCharacter byte
 
 	for {
-		typedCharacter, _ := reader.ReadByte()
+		currentTypedCharacter, _ := reader.ReadByte()
 
-		switch typedCharacter {
+		switch currentTypedCharacter {
 		// handling Ctrl + c
 		case 3:
 			fmt.Print("\r\n")
@@ -66,26 +67,46 @@ func repl(prompt string, terminalFd int, oldState *term.State) {
 			return
 		// Handling tab
 		case '\t':
-			suggestions := trie.SearchAll(command.String())
 
-			switch len(suggestions) {
+			commandPrefix := command.String()
+			builtins := trie.SearchAll(commandPrefix)
+			executables := SearchAllExecutable(commandPrefix)
+
+			var combined []string
+			AddItems(&combined, &builtins)
+			AddItems(&combined, &executables)
+
+			switch len(combined) {
 			case 0:
 				fmt.Print(bell)
 			case 1:
 				fmt.Print("\r")
 				command.Reset()
-				command.WriteString(fmt.Sprintf("%s ", suggestions[0]))
-				fmt.Printf("%s%s ", prompt, suggestions[0])
+				command.WriteString(fmt.Sprintf("%s ", combined[0]))
+				fmt.Printf("%s%s", prompt, command.String())
+			default:
+				if previousTypedCharacter != '\t' {
+					fmt.Print(bell)
+					previousTypedCharacter = currentTypedCharacter
+					continue
+				}
+				slices.Sort(executables)
+				fmt.Print("\r")
+				fmt.Printf("%s%s", prompt, command.String())
+				fmt.Printf("\r\n%s", strings.Join(combined, "  "))
+				fmt.Printf("\r\n%s%s", prompt, command.String())
 			}
 		// Handling Enter
 		case '\n', '\r':
 			fmt.Print("\r\n")
 			if command.Len() > 0 {
+				// We want commands to run in cooked mode ( Normal ) for proper output formatting
 				if err := term.Restore(terminalFd, oldState); err != nil {
 					return
 				}
 				StartCommandExecution(command.String())
 				command.Reset()
+				// Again making it RAW mode for the next input handling
 				if _, err := term.MakeRaw(terminalFd); err != nil {
 					return
 				}
@@ -101,9 +122,10 @@ func repl(prompt string, terminalFd int, oldState *term.State) {
 			}
 
 		default:
-			command.WriteByte(typedCharacter)
-			fmt.Print(string(typedCharacter))
+			command.WriteByte(currentTypedCharacter)
+			fmt.Print(string(currentTypedCharacter))
 		}
+		previousTypedCharacter = currentTypedCharacter
 	}
 }
 func StartCommandExecution(command string) {
@@ -180,4 +202,12 @@ func processCdCommand(arg []string) {
 
 	os.Chdir(directory)
 
+}
+
+func AddItems(dest *[]string, src *[]string) {
+	for _, item := range *src {
+		if !slices.Contains(*dest, item) {
+			*dest = append(*dest, item)
+		}
+	}
 }
