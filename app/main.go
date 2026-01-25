@@ -3,8 +3,8 @@ package main
 import (
 	"bufio"
 	"fmt"
+	// term "golang.org/x/term"
 	"os"
-	"path/filepath"
 	"strings"
 )
 
@@ -20,11 +20,19 @@ var (
 
 func main() {
 
-	if err := loadShellRC(".shellrc"); err != nil {
+	if err := loadShellRC(); err != nil {
 		fmt.Println("Unable to open .shellrc")
 		os.Exit(1)
 	}
 
+	// terminalFd := int(os.Stdin.Fd())
+	// oldState, err := term.MakeRaw(terminalFd)
+	// if err != nil {
+	// 	panic(err)
+	// }
+	//
+	// defer term.Restore(terminalFd, oldState)
+	//
 	prompt, reader := os.Getenv("PS"), bufio.NewReader(os.Stdin)
 	repl(prompt, reader)
 }
@@ -111,45 +119,4 @@ func processCdCommand(arg []string) {
 
 	os.Chdir(directory)
 
-}
-
-func isExecutable(directoryPath string, target string) (bool, string) {
-
-	info, err := os.Stat(directoryPath)
-	if err != nil {
-		if os.IsNotExist(err) {
-			// fmt.Printf("Invalid directory path: %s\n", directoryPath)
-		}
-		return false, ""
-	}
-
-	if !info.IsDir() {
-		return false, ""
-	}
-
-	matched := false
-	fullPath := ""
-
-	filepath.Walk(directoryPath, func(path string, info os.FileInfo, err error) error {
-
-		if err != nil {
-			return err
-		}
-
-		if info.IsDir() {
-			return nil
-		}
-
-		mode := info.Mode()
-
-		if target == info.Name() && mode&0100 != 0 {
-			matched = true
-			fullPath = path
-			return nil
-		}
-
-		return nil
-	})
-
-	return matched, fullPath
 }

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 	"syscall"
 )
@@ -35,6 +36,22 @@ func executeCommand(commandDetails Command) {
 
 	fmt.Printf("%s: command not found\n", commandName)
 
+}
+
+func isExecutable(directoryPath string, target string) (bool, string) {
+
+	fullPath := filepath.Join(directoryPath, target)
+	stat, err := os.Stat(fullPath)
+
+	if err != nil {
+		return false, ""
+	}
+
+	if stat.Mode()&0100 != 0 {
+		return true, fullPath
+	}
+
+	return false, ""
 }
 
 func setIO(ioDetails *map[int]*Redirection, cmd *exec.Cmd) {
