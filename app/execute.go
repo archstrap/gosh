@@ -82,3 +82,49 @@ func openFile(r *Redirection, defaultFd int, mode int) *os.File {
 
 	return os.NewFile(uintptr(fd), r.fileName)
 }
+
+func SearchAllExecutable(commandPrefix string) []string {
+
+	allPaths, ok := os.LookupEnv("PATH")
+	if !ok {
+		return nil
+	}
+
+	var executableCommmands []string
+
+	for path := range strings.SplitSeq(allPaths, string(os.PathListSeparator)) {
+
+		files, err := os.ReadDir(path)
+		if err != nil {
+			continue
+		}
+
+		for _, file := range files {
+			if isExecutableFile(path, file.Name(), commandPrefix) {
+				executableCommmands = append(executableCommmands, file.Name())
+			}
+		}
+	}
+
+	return executableCommmands
+
+}
+
+func isExecutableFile(path string, file string, commandPrefix string) bool {
+
+	if !strings.HasPrefix(file, commandPrefix) {
+		return false
+	}
+
+	fileInfo, err := os.Stat(filepath.Join(path, file))
+
+	if err != nil {
+		return false
+	}
+
+	if fileInfo.IsDir() {
+		return false
+	}
+
+	return fileInfo.Mode()&0100 != 0
+}
