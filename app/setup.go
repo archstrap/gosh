@@ -7,7 +7,16 @@ import (
 	"strings"
 )
 
-func loadShellRC(path string) error {
+func loadShellRC() error {
+
+	var path string
+	if fileExists(".shellrc") {
+		path = ".shellrc"
+	}
+
+	if fileExists(os.ExpandEnv("$HOME/.goshrc")) {
+		path = os.ExpandEnv("$HOME/.goshrc")
+	}
 
 	file, err := os.Open(path)
 	if err != nil {

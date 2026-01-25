@@ -25,6 +25,7 @@ const (
 	escapeRunes           = `\`
 	ioRedirectRunes       = `><`
 	digitRunes            = `0123456789`
+	pipeRunes             = `|`
 )
 
 const (
@@ -35,6 +36,7 @@ const (
 	escapeRuneClass
 	ioRedirectRuneClass
 	digitRuneClass
+	pipeRuneClass
 	eofRuneClass
 )
 
@@ -51,6 +53,7 @@ const (
 const (
 	wordToken TokenType = iota
 	ioRedirectionToken
+	pipeToken
 )
 
 var (
@@ -95,6 +98,7 @@ func NewDefaultClassifier() TokenClassifier {
 	tc.AddClassifier(escapinngQuoteRunes, escapingQuoteRuneClass)
 	tc.AddClassifier(ioRedirectRunes, ioRedirectRuneClass)
 	tc.AddClassifier(digitRunes, digitRuneClass)
+	tc.AddClassifier(pipeRunes, pipeRuneClass)
 	tc.AddClassifier(escapeRunes, escapeRuneClass)
 	return tc
 }
@@ -136,7 +140,7 @@ func (tr *Tokenizer) scan() (*Token, error) {
 	var prevEscapeRune rune
 	var value []rune
 	var tokenType TokenType
-	
+
 	for {
 
 		nextRune, nextRuneType, err := tr.getRuneDetails()
@@ -177,6 +181,8 @@ func (tr *Tokenizer) scan() (*Token, error) {
 				state = ioRedirectState
 				tokenType = ioRedirectionToken
 				value = append(value, nextRune)
+			case pipeRuneClass:
+				return NewToken(string(nextRune), pipeToken), nil
 			default:
 				state = inWordState
 				tokenType = wordToken
@@ -195,6 +201,9 @@ func (tr *Tokenizer) scan() (*Token, error) {
 			case escapeRuneClass:
 				state = escapeState
 			case ioRedirectRuneClass:
+				tr.input.UnreadRune()
+				return NewToken(string(value), tokenType), nil
+			case pipeRuneClass:
 				tr.input.UnreadRune()
 				return NewToken(string(value), tokenType), nil
 			default:
