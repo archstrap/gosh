@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
 	"maps"
 	"os"
@@ -47,14 +48,12 @@ func repl(prompt string, terminalFd int, oldState *term.State) {
 
 	fmt.Print(prompt) // Print prompt once at start
 
-	for {
-		buf := make([]byte, 1)
-		if _, err := os.Stdin.Read(buf); err != nil {
-			fmt.Println(err)
-			continue
-		}
+	reader := bufio.NewReader(os.Stdin)
 
-		switch buf[0] {
+	for {
+		typedCharacter, _ := reader.ReadByte()
+
+		switch typedCharacter {
 		// handling Ctrl + c
 		case 3:
 			fmt.Print("\r\n")
@@ -66,9 +65,9 @@ func repl(prompt string, terminalFd int, oldState *term.State) {
 			return
 		// Handling tab
 		case '\t':
-			fmt.Print("\r\n")
 			suggestions := trie.SearchAll(command.String())
 			if len(suggestions) == 1 {
+				fmt.Print("\r")
 				command.Reset()
 				command.WriteString(fmt.Sprintf("%s ", suggestions[0]))
 				fmt.Printf("%s%s ", prompt, suggestions[0])
@@ -91,8 +90,8 @@ func repl(prompt string, terminalFd int, oldState *term.State) {
 		case 127, 8:
 
 		default:
-			command.WriteByte(buf[0])
-			fmt.Print(string(buf[0]))
+			command.WriteByte(typedCharacter)
+			fmt.Print(string(typedCharacter))
 		}
 	}
 }
@@ -102,6 +101,7 @@ func StartCommandExecution(command string) {
 
 	switch commandDetails.name {
 	case "exit":
+		os.Exit(0)
 		return
 	case "type":
 		processTypeCommand(commandDetails.args[0])
