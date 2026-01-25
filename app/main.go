@@ -1,11 +1,13 @@
 package main
 
 import (
-	"bufio"
 	"fmt"
-	// term "golang.org/x/term"
+	"maps"
 	"os"
+	"slices"
 	"strings"
+
+	"golang.org/x/term"
 )
 
 var (
@@ -25,42 +27,90 @@ func main() {
 		os.Exit(1)
 	}
 
-	// terminalFd := int(os.Stdin.Fd())
-	// oldState, err := term.MakeRaw(terminalFd)
-	// if err != nil {
-	// 	panic(err)
-	// }
-	//
-	// defer term.Restore(terminalFd, oldState)
-	//
-	prompt, reader := os.Getenv("PS"), bufio.NewReader(os.Stdin)
-	repl(prompt, reader)
+	terminalFd := int(os.Stdin.Fd())
+	oldState, err := term.MakeRaw(terminalFd)
+	if err != nil {
+		panic(err)
+	}
+
+	defer term.Restore(terminalFd, oldState)
+
+	prompt := os.Getenv("PS")
+	repl(prompt, terminalFd, oldState)
 }
 
-func repl(prompt string, reader *bufio.Reader) {
+func repl(prompt string, terminalFd int, oldState *term.State) {
+	trie := NewTrie()
+	keys := slices.Collect(maps.Keys(ShellBuiltinCommands))
+	trie.InsertAll(keys...)
+	var command strings.Builder
+
+	fmt.Print(prompt) // Print prompt once at start
 
 	for {
-		fmt.Print(prompt)
-		command, err := reader.ReadString('\n')
-		if err != nil {
-			panic(err)
+		buf := make([]byte, 1)
+		if _, err := os.Stdin.Read(buf); err != nil {
+			fmt.Println(err)
+			continue
 		}
 
-		commandDetails := Parse(command)
-
-		switch commandDetails.name {
-		case "exit":
+		switch buf[0] {
+		// handling Ctrl + c
+		case 3:
+			fmt.Print("\r\n")
+			command.Reset()
+			fmt.Print(prompt)
+		// handling Ctrl + d
+		case 4:
+			fmt.Print("\r\n")
 			return
-		case "type":
-			processTypeCommand(commandDetails.args[0])
-		case "pwd":
-			processPwdCommand()
-		case "cd":
-			processCdCommand(commandDetails.args)
-		default:
-			executeCommand(commandDetails)
-		}
+		// Handling tab
+		case '\t':
+			fmt.Print("\r\n")
+			suggestions := trie.SearchAll(command.String())
+			if len(suggestions) == 1 {
+				command.Reset()
+				command.WriteString(fmt.Sprintf("%s ", suggestions[0]))
+				fmt.Printf("%s%s ", prompt, suggestions[0])
+			}
+		// Handling Enter
+		case '\n', '\r':
+			fmt.Print("\r\n")
+			if command.Len() > 0 {
+				if err := term.Restore(terminalFd, oldState); err != nil {
+					return
+				}
+				StartCommandExecution(command.String())
+				command.Reset()
+				if _, err := term.MakeRaw(terminalFd); err != nil {
+					return
+				}
+			}
+			fmt.Print(prompt)
+		// Handling BackSpace and Del
+		case 127, 8:
 
+		default:
+			command.WriteByte(buf[0])
+			fmt.Print(string(buf[0]))
+		}
+	}
+}
+func StartCommandExecution(command string) {
+
+	commandDetails := Parse(command)
+
+	switch commandDetails.name {
+	case "exit":
+		return
+	case "type":
+		processTypeCommand(commandDetails.args[0])
+	case "pwd":
+		processPwdCommand()
+	case "cd":
+		processCdCommand(commandDetails.args)
+	default:
+		executeCommand(commandDetails)
 	}
 }
 
