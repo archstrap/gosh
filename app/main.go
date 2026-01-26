@@ -85,16 +85,28 @@ func repl(prompt string, terminalFd int, oldState *term.State) {
 				command.WriteString(fmt.Sprintf("%s ", combined[0]))
 				fmt.Printf("%s%s", prompt, command.String())
 			default:
-				if previousTypedCharacter != '\t' {
-					fmt.Print(bell)
-					previousTypedCharacter = currentTypedCharacter
+
+				slices.Sort(combined)
+				t := NewTrie()
+				t.InsertAll(combined...)
+
+				if t.LongestCommonPrefix() == command.String() {
+					if previousTypedCharacter != '\t' {
+						fmt.Print(bell)
+					} else {
+						fmt.Print("\r")
+						fmt.Printf("%s%s", prompt, command.String())
+						fmt.Printf("\r\n%s", strings.Join(combined, "  "))
+						fmt.Printf("\r\n%s%s", prompt, t.LongestCommonPrefix())
+					}
+				} else {
+					fmt.Printf("\r%s%s", prompt, t.LongestCommonPrefix())
+					command.Reset()
+					command.WriteString(t.LongestCommonPrefix())
+					previousTypedCharacter = '\n'
 					continue
 				}
-				slices.Sort(executables)
-				fmt.Print("\r")
-				fmt.Printf("%s%s", prompt, command.String())
-				fmt.Printf("\r\n%s", strings.Join(combined, "  "))
-				fmt.Printf("\r\n%s%s", prompt, command.String())
+
 			}
 		// Handling Enter
 		case '\n', '\r':
