@@ -140,25 +140,6 @@ func repl(prompt string, terminalFd int, oldState *term.State) {
 		previousTypedCharacter = currentTypedCharacter
 	}
 }
-func StartCommandExecution(command string) {
-
-	commandDetails := Parse(command)
-
-	switch commandDetails.name {
-	case "exit":
-		os.Exit(0)
-		return
-	case "type":
-		processTypeCommand(commandDetails.args[0])
-	case "pwd":
-		processPwdCommand()
-	case "cd":
-		processCdCommand(commandDetails.args)
-	default:
-		executeCommand(commandDetails)
-	}
-}
-
 func processTypeCommand(commandName string) {
 
 	if ShellBuiltinCommands[commandName] {

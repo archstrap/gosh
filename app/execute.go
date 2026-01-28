@@ -9,32 +9,44 @@ import (
 	"syscall"
 )
 
-func executeCommand(commandDetails Command) {
-
-	commandName := commandDetails.name
+func ConvertToExecutableCommand(commandDetails *Command) *exec.Cmd {
+	command := commandDetails.name
 	args := commandDetails.args
 	redirections := commandDetails.redirections
 
-	executablePaths, isPathEnvSet := os.LookupEnv("PATH")
+	// fmt.Printf("Name: %s, args: %v, io-redirections: %v\n", command, args, redirections)
 
-	if !isPathEnvSet {
-		fmt.Printf("%s: command not found\n", commandName)
-		return
+	executablePaths, set := os.LookupEnv("PATH")
+	if !set {
+		return nil
 	}
+
+	var cmd *exec.Cmd
+
 	for path := range strings.SplitSeq(executablePaths, ":") {
-		ok, commandFullPath := isExecutable(path, commandName)
+
+		ok, path := isExecutable(path, command)
+
 		if !ok {
 			continue
 		}
-		cmd := exec.Command(commandFullPath, args...)
+		cmd = exec.Command(path, args...)
 		setIO(&redirections, cmd)
-		cmd.Args = append([]string{commandName}, args...)
+		cmd.Args = append([]string{command}, args...)
+		break
+	}
 
+	return cmd
+}
+
+func executeCommand(commandDetails Command) {
+
+	if cmd := ConvertToExecutableCommand(&commandDetails); cmd != nil {
 		cmd.Run()
 		return
 	}
 
-	fmt.Printf("%s: command not found\n", commandName)
+	fmt.Printf("%s: command not found\n", commandDetails.name)
 
 }
 
@@ -127,4 +139,80 @@ func isExecutableFile(path string, file string, commandPrefix string) bool {
 	}
 
 	return fileInfo.Mode()&0100 != 0
+}
+
+func StartCommandExecution(command string) {
+
+	commands := Parse(strings.TrimSpace(command)) // it will be returning an []*Command
+
+	if len(commands) == 0 {
+		fmt.Printf("%s: command not found\n", command)
+		return
+	}
+
+	if len(commands) == 1 {
+		commandDetails := commands[0]
+		switch commandDetails.name {
+		case "exit":
+			os.Exit(0)
+			return
+		case "type":
+			processTypeCommand(commandDetails.args[0])
+		case "pwd":
+			processPwdCommand()
+		case "cd":
+			processCdCommand(commandDetails.args)
+		default:
+			executeCommand(*commandDetails)
+		}
+		return
+	}
+
+	var rc []*exec.Cmd
+
+	for _, commandDetails := range commands {
+		rc = append(rc, ConvertToExecutableCommand(commandDetails))
+	}
+
+	pipeCount := len(commands) - 1
+	var openFiles []*os.File
+
+	for i := range pipeCount {
+		curr := rc[i]
+		next := rc[i+1]
+
+		r, w, _ := os.Pipe()
+
+		curr.Stdout = w
+		next.Stdin = r
+
+		openFiles = append(openFiles, r, w)
+	}
+
+	Do(rc, func(command *exec.Cmd) {
+		command.Start()
+	})
+
+	Do(openFiles, func(file *os.File) {
+		file.Close()
+	})
+
+	Do(rc, func(command *exec.Cmd) {
+		command.Wait()
+	})
+
+}
+
+func CloseResources(openFiles []*os.File) {
+	for _, openFile := range openFiles {
+		if openFile != nil {
+			openFile.Close()
+		}
+	}
+}
+
+func Do[K any](items []*K, callBack func(item *K)) {
+	for _, item := range items {
+		callBack(item)
+	}
 }

@@ -84,6 +84,14 @@ type Command struct {
 	redirections map[int]*Redirection
 }
 
+func New(name string, args []string, redirections map[int]*Redirection) *Command {
+	return &Command{
+		name:         name,
+		args:         args,
+		redirections: redirections,
+	}
+}
+
 func NewToken(value string, tokenType TokenType) *Token {
 	return &Token{value: value, tokenType: tokenType}
 }
@@ -313,7 +321,7 @@ func (lx *Lexer) Parse() (*Token, error) {
 	return (*Tokenizer)(lx).Next()
 }
 
-func Parse(s string) Command {
+func Parse(s string) []*Command {
 
 	lexer := NewLexer(s)
 	var tokens []*Token
@@ -329,14 +337,17 @@ func Parse(s string) Command {
 	var commandName string
 	var args []string
 	redirections := make(map[int]*Redirection)
+	var commands []*Command
 
 	position := 0
+	start := true
 
 	for position < len(tokens) {
 		token := tokens[position]
-		if position == 0 {
+		if start {
 			commandName = token.value
 			position++
+			start = false
 			continue
 		}
 
@@ -380,10 +391,21 @@ func Parse(s string) Command {
 
 		}
 
+		if token.tokenType == pipeToken {
+			commands = append(commands, New(commandName, args, redirections))
+			args = nil
+			redirections = nil
+			position++
+			start = true
+		}
+
 	}
 
-	return Command{name: commandName, args: args, redirections: redirections}
+	if !start {
+		commands = append(commands, New(commandName, args, redirections))
+	}
 
+	return commands
 }
 
 func Split(s string) ([]string, error) {
