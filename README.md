@@ -38,3 +38,5 @@ Note: This section is for stages 2 and beyond.
 ## Resources
 
 [os/exec patterns](https://www.dolthub.com/blog/2022-11-28-go-os-exec-patterns/)
+
+[InterProcessCommunication](https://beej.us/guide/bgipc/)
