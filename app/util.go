@@ -1,6 +1,9 @@
 package main
 
-import "os"
+import (
+	"os"
+	"slices"
+)
 
 func GetOrDefault[K comparable, V any](mp map[K]V, key K, defaultValue V) V {
 	val, ok := mp[key]
@@ -10,15 +13,27 @@ func GetOrDefault[K comparable, V any](mp map[K]V, key K, defaultValue V) V {
 	return val
 }
 
-func GetEnvOrDefault(key string, defaultValue string) string {
-	value, ok := os.LookupEnv(key)
-	if !ok {
-		value = defaultValue
-	}
-	return value
-}
-
 func fileExists(filename string) bool {
 	_, err := os.Stat(filename)
 	return !os.IsNotExist(err)
+}
+
+func Do[K any](items []*K, callBack func(item *K)) {
+	for _, item := range items {
+		callBack(item)
+	}
+}
+
+func PerformTask[K any](items []K, callBack func(item K)) {
+	for _, item := range items {
+		callBack(item)
+	}
+}
+
+func AddItems(dest *[]string, src *[]string) {
+	for _, item := range *src {
+		if !slices.Contains(*dest, item) {
+			*dest = append(*dest, item)
+		}
+	}
 }
