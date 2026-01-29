@@ -14,8 +14,10 @@ func ExecuteCommand(input string) {
 	}
 
 	var executables []Executable
+	resourceManager := &ResourceManager{}
+	defer resourceManager.CloseResources()
 	for _, command := range commands {
-		executable, err := CreateExecutable(command)
+		executable, err := CreateExecutable(command, resourceManager)
 		if err != nil {
 			fmt.Println(err)
 			return

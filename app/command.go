@@ -12,15 +12,56 @@ type Executable interface {
 	SetStdin(in io.Reader)
 	SetStdout(out io.Writer)
 	SetStderr(err io.Writer)
+	GetStdin() io.Reader
+	GetStdout() io.Writer
+	GetStderr() io.Writer
 	Start() error
 	Wait() error
 }
 
-func CreateExecutable(command *Command) (Executable, error) {
+type ResourceManager struct {
+	readers []io.Reader
+	writers []io.Writer
+}
+
+func (r *ResourceManager) CloseResources() {
+	PerformTask(r.readers, func(resource io.Reader) {
+		if file, ok := resource.(*os.File); ok && isStandardIoFile(file.Name()) {
+			return
+		}
+		if closer, ok := resource.(io.Closer); ok {
+			closer.Close()
+		}
+	})
+	PerformTask(r.writers, func(resource io.Writer) {
+		if file, ok := resource.(*os.File); ok && isStandardIoFile(file.Name()) {
+			return
+		}
+		if closer, ok := resource.(io.Closer); ok {
+			closer.Close()
+		}
+	})
+
+}
+func (r *ResourceManager) AddReader(reader io.Reader) {
+	r.readers = append(r.readers, reader)
+}
+func (r *ResourceManager) AddWriter(writer io.Writer) {
+	r.writers = append(r.writers, writer)
+}
+
+func (r *ResourceManager) AddResource(executable Executable) {
+	r.AddReader(executable.GetStdin())
+	r.AddWriter(executable.GetStdout())
+	r.AddWriter(executable.GetStderr())
+}
+
+func CreateExecutable(command *Command, r *ResourceManager) (Executable, error) {
 
 	if ShellBuiltinCommands[command.name] {
 		builtinCommand := NewBuiltinCommand(command.name, command.args...)
 		SetIO(&command.redirections, builtinCommand)
+		r.AddResource(builtinCommand)
 		return builtinCommand, nil
 	}
 
@@ -28,6 +69,7 @@ func CreateExecutable(command *Command) (Executable, error) {
 		externalCommand := NewExternalCommand(path, command.args...)
 		externalCommand.cmd.Args = append([]string{command.name}, command.args...)
 		SetIO(&command.redirections, externalCommand)
+		r.AddResource(externalCommand)
 		return externalCommand, nil
 	}
 
@@ -54,6 +96,16 @@ func (e *ExternalCommand) SetStdout(out io.Writer) {
 func (e *ExternalCommand) SetStderr(err io.Writer) {
 	e.cmd.Stderr = err
 }
+func (e *ExternalCommand) GetStdin() io.Reader {
+	return e.cmd.Stdin
+}
+func (e *ExternalCommand) GetStdout() io.Writer {
+	return e.cmd.Stdout
+}
+func (e *ExternalCommand) GetStderr() io.Writer {
+	return e.cmd.Stderr
+}
+
 func (e *ExternalCommand) Start() error {
 	return e.cmd.Start()
 }
@@ -89,6 +141,17 @@ func (b *BuiltinCommand) SetStdout(out io.Writer) {
 func (b *BuiltinCommand) SetStderr(err io.Writer) {
 	b.Stderr = err
 }
+
+func (b *BuiltinCommand) GetStdin() io.Reader {
+	return b.Stdin
+}
+func (b *BuiltinCommand) GetStdout() io.Writer {
+	return b.Stdout
+}
+func (b *BuiltinCommand) GetStderr() io.Writer {
+	return b.Stderr
+}
+
 func (b *BuiltinCommand) Start() error {
 	go func() {
 		executeFn := BuiltinRegistry[b.Name]
