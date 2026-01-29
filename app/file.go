@@ -32,7 +32,7 @@ func SetIO(ioDetails *map[int]*Redirection, cmd Executable) {
 
 func openFile(r *Redirection, defaultFd int, mode int) *os.File {
 
-	if r.fileName == "/dev/stdin" || r.fileName == "/dev/stdout" || r.fileName == "/dev/stderr" {
+	if isStandardIoFile(r.fileName) {
 		return os.NewFile(uintptr(defaultFd), r.fileName)
 	}
 
@@ -51,6 +51,10 @@ func openFile(r *Redirection, defaultFd int, mode int) *os.File {
 	}
 
 	return os.NewFile(uintptr(fd), r.fileName)
+}
+
+func isStandardIoFile(fileName string) bool {
+	return fileName == "/dev/stdin" || fileName == "/dev/stdout" || fileName == "/dev/stderr"
 }
 
 func SearchAllExecutable(commandPrefix string) []string {
