@@ -19,7 +19,7 @@ var (
 		"cd":   true,
 		"echo": true,
 	}
-	bell string = "\x07"
+	bell = "\x07"
 )
 
 func main() {
@@ -116,7 +116,8 @@ func repl(prompt string, terminalFd int, oldState *term.State) {
 				if err := term.Restore(terminalFd, oldState); err != nil {
 					return
 				}
-				StartCommandExecution(command.String())
+				// StartCommandExecution(command.String())
+				ExecuteCommand(command.String())
 				command.Reset()
 				// Again making it RAW mode for the next input handling
 				if _, err := term.MakeRaw(terminalFd); err != nil {
@@ -138,69 +139,5 @@ func repl(prompt string, terminalFd int, oldState *term.State) {
 			fmt.Print(string(currentTypedCharacter))
 		}
 		previousTypedCharacter = currentTypedCharacter
-	}
-}
-func processTypeCommand(commandName string) {
-
-	if ShellBuiltinCommands[commandName] {
-		fmt.Printf("%s is a shell builtin\n", commandName)
-		return
-	}
-
-	executablePaths, isPathEnvSet := os.LookupEnv("PATH")
-
-	if isPathEnvSet {
-
-		for path := range strings.SplitSeq(executablePaths, ":") {
-			ok, commandFullPath := isExecutable(path, commandName)
-			if ok {
-				fmt.Printf("%s is %s\n", commandName, commandFullPath)
-				return
-			}
-		}
-
-	}
-
-	fmt.Printf("%s: not found\n", commandName)
-
-}
-
-func processPwdCommand() {
-	pwd, err := os.Getwd()
-	if err != nil {
-		fmt.Println("Unable to find the present working directory")
-	}
-	fmt.Println(pwd)
-}
-
-func processCdCommand(arg []string) {
-
-	var directory string
-	if len(arg) > 0 {
-		directory = arg[0]
-	} else {
-		directory = "~"
-	}
-
-	if strings.HasPrefix(directory, "~") {
-		homeDirectory := os.Getenv("HOME")
-		directory = strings.ReplaceAll(directory, "~", homeDirectory)
-	}
-
-	info, err := os.Stat(directory)
-
-	if err != nil || !info.IsDir() {
-		fmt.Printf("cd: %s: No such file or directory\n", directory)
-	}
-
-	os.Chdir(directory)
-
-}
-
-func AddItems(dest *[]string, src *[]string) {
-	for _, item := range *src {
-		if !slices.Contains(*dest, item) {
-			*dest = append(*dest, item)
-		}
 	}
 }
