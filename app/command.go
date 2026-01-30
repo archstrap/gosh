@@ -316,7 +316,7 @@ func (h *History) GetHistoryIndex() int {
 	h.lock.RLock()
 	defer h.lock.RUnlock()
 
-	return len(h.commands) - 1
+	return len(h.commands)
 
 }
 
@@ -325,6 +325,8 @@ func (h *History) Prev(historyIndex *int) string {
 	h.lock.Lock()
 	defer h.lock.Unlock()
 
+	*historyIndex--
+
 	if *historyIndex < 0 {
 		*historyIndex = 0
 	} else if *historyIndex >= len(h.commands) {
@@ -332,7 +334,6 @@ func (h *History) Prev(historyIndex *int) string {
 	}
 
 	lastCommand := h.commands[*historyIndex]
-	*historyIndex--
 	return lastCommand
 
 }
@@ -341,6 +342,8 @@ func (h *History) Next(historyIndex *int) string {
 	h.lock.Lock()
 	defer h.lock.Unlock()
 
+	*historyIndex++
+
 	if *historyIndex < 0 {
 		*historyIndex = 0
 	} else if *historyIndex >= len(h.commands) {
@@ -348,7 +351,6 @@ func (h *History) Next(historyIndex *int) string {
 	}
 
 	nextCommand := h.commands[*historyIndex]
-	*historyIndex++
 	return nextCommand
 
 }
