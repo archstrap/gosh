@@ -325,6 +325,10 @@ func (h *History) Prev(historyIndex *int) string {
 	h.lock.Lock()
 	defer h.lock.Unlock()
 
+	if len(h.commands) == 0 {
+		return ""
+	}
+
 	*historyIndex--
 
 	if *historyIndex < 0 {
@@ -341,6 +345,10 @@ func (h *History) Prev(historyIndex *int) string {
 func (h *History) Next(historyIndex *int) string {
 	h.lock.Lock()
 	defer h.lock.Unlock()
+
+	if len(h.commands) == 0 {
+		return ""
+	}
 
 	*historyIndex++
 
