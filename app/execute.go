@@ -30,9 +30,19 @@ func ExecuteCommand(input string) {
 
 	for i := range pipeCount {
 		r, w, _ := os.Pipe()
+		// Current Command Will Write at the Pipe's Write end
 		executables[i].SetStdout(w)
+		// Next Command Will Read from the Pipe's Read end
 		executables[i+1].SetStdin(r)
-		openFiles = append(openFiles, r, w)
+
+		if executables[i].GetCommandType() == "EXTERNAL" {
+			openFiles = append(openFiles, w)
+		}
+
+		if executables[i+1].GetCommandType() == "EXTERNAL" {
+			openFiles = append(openFiles, r)
+		}
+
 	}
 
 	PerformTask(executables, func(e Executable) {
