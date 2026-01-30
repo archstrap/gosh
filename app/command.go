@@ -15,6 +15,7 @@ type Executable interface {
 	GetStdin() io.Reader
 	GetStdout() io.Writer
 	GetStderr() io.Writer
+	GetCommandType() string
 	Start() error
 	Wait() error
 }
@@ -61,7 +62,6 @@ func CreateExecutable(command *Command, r *ResourceManager) (Executable, error) 
 	if ShellBuiltinCommands[command.name] {
 		builtinCommand := NewBuiltinCommand(command.name, command.args...)
 		SetIO(&command.redirections, builtinCommand)
-		r.AddResource(builtinCommand)
 		return builtinCommand, nil
 	}
 
@@ -104,6 +104,10 @@ func (e *ExternalCommand) GetStdout() io.Writer {
 }
 func (e *ExternalCommand) GetStderr() io.Writer {
 	return e.cmd.Stderr
+}
+
+func (e *ExternalCommand) GetCommandType() string {
+	return "EXTERNAL"
 }
 
 func (e *ExternalCommand) Start() error {
@@ -152,8 +156,30 @@ func (b *BuiltinCommand) GetStderr() io.Writer {
 	return b.Stderr
 }
 
+func (b *BuiltinCommand) GetCommandType() string {
+	return "BUILTIN"
+}
+
 func (b *BuiltinCommand) Start() error {
 	go func() {
+
+		defer func() {
+
+			// ignore if standard I/O
+			if file, ok := b.Stdin.(*os.File); ok && !isStandardIoFile(file.Name()) {
+				file.Close()
+			}
+
+			if file, ok := b.Stdout.(*os.File); ok && !isStandardIoFile(file.Name()) {
+				file.Close()
+			}
+
+			if file, ok := b.Stderr.(*os.File); ok && !isStandardIoFile(file.Name()) {
+				file.Close()
+			}
+
+		}()
+
 		executeFn := BuiltinRegistry[b.Name]
 		b.Done <- executeFn(b.Args, b.Stdin, b.Stdout, b.Stderr)
 	}()

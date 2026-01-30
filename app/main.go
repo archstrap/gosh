@@ -35,7 +35,12 @@ func main() {
 		panic(err)
 	}
 
-	defer term.Restore(terminalFd, oldState)
+	defer func(fd int, oldState *term.State) {
+		err := term.Restore(fd, oldState)
+		if err != nil {
+			os.Exit(1)
+		}
+	}(terminalFd, oldState)
 
 	prompt := os.Getenv("PS")
 	repl(prompt, terminalFd, oldState)
