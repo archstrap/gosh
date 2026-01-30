@@ -312,6 +312,47 @@ func (h *History) GetLast(count int) string {
 
 }
 
+func (h *History) GetHistoryIndex() int {
+	h.lock.RLock()
+	defer h.lock.RUnlock()
+
+	return len(h.commands) - 1
+
+}
+
+func (h *History) Prev(historyIndex *int) string {
+
+	h.lock.Lock()
+	defer h.lock.Unlock()
+
+	if *historyIndex < 0 {
+		*historyIndex = 0
+	} else if *historyIndex >= len(h.commands) {
+		*historyIndex = len(h.commands) - 1
+	}
+
+	lastCommand := h.commands[*historyIndex]
+	*historyIndex--
+	return lastCommand
+
+}
+
+func (h *History) Next(historyIndex *int) string {
+	h.lock.Lock()
+	defer h.lock.Unlock()
+
+	if *historyIndex < 0 {
+		*historyIndex = 0
+	} else if *historyIndex >= len(h.commands) {
+		*historyIndex = len(h.commands) - 1
+	}
+
+	nextCommand := h.commands[*historyIndex]
+	*historyIndex++
+	return nextCommand
+
+}
+
 func historyBuiltin(args []string, stdin io.Reader, stdout io.Writer, stderr io.Writer) error {
 
 	switch len(args) {

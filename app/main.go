@@ -58,6 +58,9 @@ func repl(prompt string, terminalFd int, oldState *term.State) {
 	reader := bufio.NewReader(os.Stdin)
 	var previousTypedCharacter byte
 
+	hist := GetHistory()
+	histIndex := hist.GetHistoryIndex()
+
 	for {
 		currentTypedCharacter, _ := reader.ReadByte()
 
@@ -71,6 +74,29 @@ func repl(prompt string, terminalFd int, oldState *term.State) {
 		case 4:
 			fmt.Print("\r\n")
 			return
+		// Arrow
+		case 27:
+
+			nextCharacter1, _ := reader.ReadByte()
+			nextCharacter2, _ := reader.ReadByte()
+
+			if nextCharacter1 == 91 {
+
+				switch nextCharacter2 {
+				case 'A':
+					cmd := hist.Prev(&histIndex)
+					command.Reset()
+					command.WriteString(cmd)
+					fmt.Print("\r\033[K")
+					fmt.Printf("%s%s", prompt, command.String())
+				case 'B':
+					cmd := hist.Next(&histIndex)
+					command.Reset()
+					command.WriteString(cmd)
+					fmt.Print("\r\033[K")
+					fmt.Printf("%s%s", prompt, command.String())
+				}
+			}
 		// Handling tab
 		case '\t':
 
@@ -124,7 +150,8 @@ func repl(prompt string, terminalFd int, oldState *term.State) {
 				}
 				// StartCommandExecution(command.String())
 				commandInput := command.String()
-				GetHistory().Add(commandInput)
+				hist.Add(commandInput)
+				histIndex = hist.GetHistoryIndex()
 				ExecuteCommand(commandInput)
 				command.Reset()
 				// Again making it RAW mode for the next input handling
