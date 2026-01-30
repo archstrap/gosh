@@ -5,7 +5,9 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"strconv"
 	"strings"
+	"sync"
 )
 
 type Executable interface {
@@ -194,11 +196,12 @@ func (b *BuiltinCommand) Wait() error {
 type BuiltinFunc func(args []string, stdin io.Reader, stdout io.Writer, stderr io.Writer) error
 
 var BuiltinRegistry = map[string]BuiltinFunc{
-	"pwd":  pwdBuiltin,
-	"echo": echoBuiltin,
-	"type": typeBuiltin,
-	"exit": exitBuiltin,
-	"cd":   cdBuiltin,
+	"pwd":     pwdBuiltin,
+	"echo":    echoBuiltin,
+	"type":    typeBuiltin,
+	"exit":    exitBuiltin,
+	"cd":      cdBuiltin,
+	"history": historyBuiltin,
 }
 
 // pwd pwdBuiltin
@@ -266,4 +269,61 @@ func cdBuiltin(args []string, stdin io.Reader, stdout io.Writer, stderr io.Write
 		return fmt.Errorf(errorMessage)
 	}
 	return os.Chdir(directory)
+}
+
+type History struct {
+	commands []string
+	lock     sync.RWMutex
+}
+
+var (
+	history *History
+	once    sync.Once
+)
+
+func GetHistory() *History {
+
+	once.Do(func() {
+		history = &History{commands: make([]string, 0)}
+	})
+
+	return history
+}
+
+func (h *History) Add(command string) {
+	h.lock.Lock()
+	defer h.lock.Unlock()
+
+	h.commands = append(h.commands, command)
+}
+
+func (h *History) GetLast(count int) string {
+
+	h.lock.RLock()
+	defer h.lock.RUnlock()
+
+	start := max(0, len(h.commands)-count)
+
+	var commands strings.Builder
+	for i := start; i < len(h.commands); i++ {
+		commands.WriteString(fmt.Sprintf("    %d  %s\n", (i + 1), h.commands[i]))
+	}
+	return commands.String()
+
+}
+
+func historyBuiltin(args []string, stdin io.Reader, stdout io.Writer, stderr io.Writer) error {
+
+	switch len(args) {
+	case 0:
+		data := history.GetLast(len(history.commands))
+		fmt.Fprint(stdout, data)
+	case 1:
+		arg := args[0]
+		count, _ := strconv.Atoi(arg)
+		data := history.GetLast(count)
+		fmt.Fprint(stdout, data)
+	}
+
+	return nil
 }

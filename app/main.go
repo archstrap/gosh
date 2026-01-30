@@ -13,11 +13,12 @@ import (
 
 var (
 	ShellBuiltinCommands = map[string]bool{
-		"type": true,
-		"exit": true,
-		"pwd":  true,
-		"cd":   true,
-		"echo": true,
+		"type":    true,
+		"exit":    true,
+		"pwd":     true,
+		"cd":      true,
+		"echo":    true,
+		"history": true,
 	}
 	bell = "\x07"
 )
@@ -122,7 +123,9 @@ func repl(prompt string, terminalFd int, oldState *term.State) {
 					return
 				}
 				// StartCommandExecution(command.String())
-				ExecuteCommand(command.String())
+				commandInput := command.String()
+				GetHistory().Add(commandInput)
+				ExecuteCommand(commandInput)
 				command.Reset()
 				// Again making it RAW mode for the next input handling
 				if _, err := term.MakeRaw(terminalFd); err != nil {
