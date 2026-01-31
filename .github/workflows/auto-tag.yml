@@ -1,0 +1,42 @@
+name: Auto Tag
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  tag:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get latest tag and bump patch
+        id: bump
+        run: |
+          latest=$(git tag -l 'v*' --sort=-v:refname | head -1)
+          if [ -z "$latest" ]; then
+            echo "new_tag=v1.0.0" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+          version=${latest#v}
+          major=${version%%.*}
+          rest=${version#*.}
+          minor=${rest%%.*}
+          patch=${rest#*.}
+          patch=${patch%%-*}
+          new_patch=$((patch + 1))
+          echo "new_tag=v${major}.${minor}.${new_patch}" >> $GITHUB_OUTPUT
+          echo "Created tag: v${major}.${minor}.${new_patch}"
+
+      - name: Create and push tag
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag ${{ steps.bump.outputs.new_tag }}
+          git push origin ${{ steps.bump.outputs.new_tag }}
