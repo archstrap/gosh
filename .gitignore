@@ -1,0 +1,7 @@
+# Build output
+.tmp/
+gosh
+
+# Coverage
+coverage.out
+coverage.html
