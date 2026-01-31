@@ -449,12 +449,6 @@ func (h *History) Write(file *os.File) {
 			return
 		}
 	}
-
-	if err := writer.WriteByte('\n'); err != nil {
-		fmt.Println(err)
-		return
-	}
-
 }
 
 func historyBuiltin(args []string, stdin io.Reader, stdout io.Writer, stderr io.Writer) error {
