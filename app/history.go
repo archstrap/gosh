@@ -183,16 +183,19 @@ func (h *History) WriteFrom(file *os.File) {
 		writer.Flush()
 	}()
 
-	for i := h.lastWriteIndex; i < len(h.commands); i++ {
-		if _, err := writer.WriteString(h.commands[i]); err != nil {
-			h.lastWriteIndex++
+	lastIndex := h.lastWriteIndex
+	for lastIndex < len(h.commands) {
+		if _, err := writer.WriteString(h.commands[lastIndex]); err != nil {
+			h.lastWriteIndex = lastIndex
 			fmt.Println(err)
 			return
 		}
 		if err := writer.WriteByte('\n'); err != nil {
-			h.lastWriteIndex++
+			h.lastWriteIndex = lastIndex
 			fmt.Println(err)
 			return
 		}
+		lastIndex++
+		h.lastWriteIndex = lastIndex
 	}
 }
