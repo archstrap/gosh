@@ -274,8 +274,9 @@ func cdBuiltin(args []string, stdin io.Reader, stdout io.Writer, stderr io.Write
 }
 
 type History struct {
-	commands []string
-	lock     sync.RWMutex
+	commands       []string
+	lock           sync.RWMutex
+	lastWriteIndex int
 }
 
 var (
@@ -431,7 +432,8 @@ func (h *History) AppendHistory(path string) {
 	}
 	defer file.Close()
 
-	h.Write(file)
+	h.WriteFrom(file, h.lastWriteIndex)
+	h.lastWriteIndex = len(h.commands)
 
 }
 
@@ -440,6 +442,22 @@ func (h *History) Write(file *os.File) {
 	defer writer.Flush()
 
 	for i := range h.commands {
+		if _, err := writer.WriteString(h.commands[i]); err != nil {
+			fmt.Println(err)
+			return
+		}
+		if err := writer.WriteByte('\n'); err != nil {
+			fmt.Println(err)
+			return
+		}
+	}
+}
+
+func (h *History) WriteFrom(file *os.File, index int) {
+	writer := bufio.NewWriter(file)
+	defer writer.Flush()
+
+	for i := index; i < len(h.commands); i++ {
 		if _, err := writer.WriteString(h.commands[i]); err != nil {
 			fmt.Println(err)
 			return
