@@ -2,6 +2,7 @@
 [![CI](https://github.com/archstrap/gosh/actions/workflows/ci.yml/badge.svg)](https://github.com/archstrap/gosh/actions/workflows/ci.yml)
 [![Auto Tag](https://github.com/archstrap/gosh/actions/workflows/auto-tag.yml/badge.svg)](https://github.com/archstrap/gosh/actions/workflows/auto-tag.yml)
 
+
 **gosh** is a minimal, interactive Unix-style shell written in Go. It provides a read–eval–print loop (REPL) with built-in commands, piping, I/O redirection, and raw terminal handling.
 
 ---
