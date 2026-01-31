@@ -42,13 +42,10 @@ jobs:
         with:
           name: gosh-${{ runner.os }}-${{ runner.arch }}
 
-      - name: Rename binary
-        run: mv gosh gosh-linux-amd64
-
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
-          files: gosh-linux-amd64
+          files: gosh
           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
