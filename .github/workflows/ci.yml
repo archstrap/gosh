@@ -50,20 +50,23 @@ jobs:
     steps:
       - name: Download all artifacts
         uses: actions/download-artifact@v4
+        with:
+          pattern: gosh-*
+          merge-multiple: true
+          path: release-assets
 
-      - name: Flatten artifacts for release
+      - name: Verify binaries
         run: |
-          for dir in gosh-*/; do
-            [ -d "$dir" ] && cp "$dir"* . 2>/dev/null || true
-          done
-          ls -la gosh-*
+          ls -la release-assets/
+          test -f release-assets/gosh-linux-amd64 && test -f release-assets/gosh-darwin-arm64 || (echo "Missing binaries" && exit 1)
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            gosh-linux-amd64
-            gosh-darwin-arm64
+            release-assets/gosh-linux-amd64
+            release-assets/gosh-darwin-arm64
+          fail_on_unmatched_files: true
           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
