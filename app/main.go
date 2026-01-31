@@ -73,6 +73,9 @@ func repl(prompt string, terminalFd int, oldState *term.State) {
 		// handling Ctrl + d
 		case 4:
 			fmt.Print("\r\n")
+			if path, ok := os.LookupEnv("HISTFILE"); ok {
+				history.AppendHistory(path)
+			}
 			return
 		// Arrow
 		case 27:
