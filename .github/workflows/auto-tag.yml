@@ -5,7 +5,7 @@ on:
     branches: [main]
 
 jobs:
-  tag:
+  tag-and-release:
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -13,6 +13,17 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+
+      - name: Test
+        run: go test -v ./...
+
+      - name: Build
+        run: go build -o gosh app/*.go
 
       - name: Get latest tag and bump patch
         id: bump
@@ -33,10 +44,17 @@ jobs:
           echo "Created tag: v${major}.${minor}.${new_patch}"
 
       - name: Create and push tag
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git tag ${{ steps.bump.outputs.new_tag }}
           git push origin ${{ steps.bump.outputs.new_tag }}
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.bump.outputs.new_tag }}
+          files: gosh
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
