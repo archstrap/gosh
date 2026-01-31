@@ -1,4 +1,15 @@
 
+BINARY := gosh
+
+.PHONY: build
+build:
+	@go build -o $(BINARY) app/*.go
+	@echo "Built $(BINARY)"
+
+.PHONY: run
+run: build
+	@./$(BINARY) "$$@"
+
 .PHONY: test
 test:
 	@echo "Running tests..."
@@ -24,6 +35,8 @@ lint:
 .PHONY: help
 help:
 	@echo "Available targets:"
+	@echo "  make build         - Build gosh binary"
+	@echo "  make run           - Build and run gosh"
 	@echo "  make test          - Run tests"
 	@echo "  make test-coverage - Run tests with coverage report"
 	@echo "  make lint          - Lint the code (requires golangci-lint)"
