@@ -266,9 +266,8 @@ func cdBuiltin(args []string, stdin io.Reader, stdout io.Writer, stderr io.Write
 
 	info, err := os.Stat(directory)
 	if err != nil || !info.IsDir() {
-		errorMessage := fmt.Sprintf("cd: %s: No such file or directory", directory)
-		fmt.Fprintln(stderr, errorMessage)
-		return fmt.Errorf(errorMessage)
+		fmt.Fprintf(stderr, "cd: %s: No such file or directory\n", directory)
+		return fmt.Errorf("cd: %s: No such file or directory", directory)
 	}
 	return os.Chdir(directory)
 }
