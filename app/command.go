@@ -1,6 +1,8 @@
 package main
 
 import (
+	"bufio"
+	"bytes"
 	"fmt"
 	"io"
 	"os"
@@ -363,6 +365,98 @@ func (h *History) Next(historyIndex *int) string {
 
 }
 
+func (h *History) LoadHistory(path string) {
+	file, err := Open(path, os.O_RDONLY, false)
+
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	if file == nil {
+		return
+	}
+
+	defer file.Close()
+
+	reader := bufio.NewReader(file)
+
+	var lineBuf bytes.Buffer
+
+	for {
+		part, isPrefix, err := reader.ReadLine()
+
+		if err == io.EOF {
+			break
+		}
+
+		if err != nil {
+			fmt.Println(err)
+			break
+		}
+
+		lineBuf.Write(part)
+
+		if !isPrefix {
+			h.commands = append(h.commands, lineBuf.String())
+			lineBuf.Reset()
+		}
+	}
+
+	if lineBuf.Len() > 0 {
+		h.commands = append(h.commands, lineBuf.String())
+		lineBuf.Reset()
+	}
+
+}
+
+func (h *History) WriteHistory(path string) {
+
+	file, err := Open(path, os.O_WRONLY, false)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	defer file.Close()
+
+	h.Write(file)
+
+}
+
+func (h *History) AppendHistory(path string) {
+	file, err := Open(path, os.O_WRONLY, true)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	defer file.Close()
+
+	h.Write(file)
+
+}
+
+func (h *History) Write(file *os.File) {
+	writer := bufio.NewWriter(file)
+	defer writer.Flush()
+
+	for i := range h.commands {
+		if _, err := writer.WriteString(h.commands[i]); err != nil {
+			fmt.Println(err)
+			return
+		}
+		if err := writer.WriteByte('\n'); err != nil {
+			fmt.Println(err)
+			return
+		}
+	}
+
+	if err := writer.WriteByte('\n'); err != nil {
+		fmt.Println(err)
+		return
+	}
+
+}
+
 func historyBuiltin(args []string, stdin io.Reader, stdout io.Writer, stderr io.Writer) error {
 
 	switch len(args) {
@@ -374,6 +468,17 @@ func historyBuiltin(args []string, stdin io.Reader, stdout io.Writer, stderr io.
 		count, _ := strconv.Atoi(arg)
 		data := history.GetLast(count)
 		fmt.Fprint(stdout, data)
+	case 2:
+		option, file := args[0], args[1]
+		switch option {
+		case `-r`:
+			history.LoadHistory(file)
+		case `-w`:
+			history.WriteHistory(file)
+		case `-a`:
+			history.AppendHistory(file)
+		}
+
 	}
 
 	return nil

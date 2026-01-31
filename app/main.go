@@ -151,8 +151,8 @@ func repl(prompt string, terminalFd int, oldState *term.State) {
 				// StartCommandExecution(command.String())
 				commandInput := command.String()
 				hist.Add(commandInput)
-				histIndex = hist.GetHistoryIndex()
 				ExecuteCommand(commandInput)
+				histIndex = hist.GetHistoryIndex()
 				command.Reset()
 				// Again making it RAW mode for the next input handling
 				if _, err := term.MakeRaw(terminalFd); err != nil {

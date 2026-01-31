@@ -53,6 +53,31 @@ func openFile(r *Redirection, defaultFd int, mode int) *os.File {
 	return os.NewFile(uintptr(fd), r.fileName)
 }
 
+func Open(path string, mode int, isAppendOnly bool) (*os.File, error) {
+
+	flags := mode
+
+	if mode == os.O_WRONLY || mode == os.O_RDWR {
+		flags |= os.O_CREATE
+	}
+
+	if mode == os.O_WRONLY {
+		if !isAppendOnly {
+			flags |= os.O_TRUNC
+		} else {
+			flags |= os.O_APPEND
+		}
+	}
+
+	fd, err := syscall.Open(path, flags, 0644)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return os.NewFile(uintptr(fd), path), nil
+}
+
 func isStandardIoFile(fileName string) bool {
 	return fileName == "/dev/stdin" || fileName == "/dev/stdout" || fileName == "/dev/stderr"
 }
