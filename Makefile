@@ -1,5 +1,6 @@
 
 BINARY := gosh
+RUN_DIR := .tmp
 
 .PHONY: build
 build:
@@ -7,8 +8,10 @@ build:
 	@echo "Built $(BINARY)"
 
 .PHONY: run
-run: build
-	@./$(BINARY) "$$@"
+run:
+	@mkdir -p $(RUN_DIR)
+	@go build -o $(RUN_DIR)/$(BINARY) app/*.go
+	@./$(RUN_DIR)/$(BINARY) "$$@"
 
 .PHONY: test
 test:
