@@ -7,7 +7,8 @@ import (
 )
 
 func ExecuteCommand(input string) {
-	commands := Parse(strings.TrimSpace(input))
+	commandInput := os.ExpandEnv(strings.TrimSpace(input))
+	commands := Parse(commandInput)
 	if len(commands) == 0 {
 		fmt.Printf("%s: not found\n", input)
 		return
