@@ -1,42 +1,145 @@
-[![progress-banner](https://backend.codecrafters.io/progress/shell/3184386c-442c-4612-80b5-bc4bd6da5096)](https://app.codecrafters.io/users/codecrafters-bot?r=2qF)
+# gosh
 
-This is a starting point for Go solutions to the
-["Build Your Own Shell" Challenge](https://app.codecrafters.io/courses/shell/overview).
+**gosh** is a minimal, interactive Unix-style shell written in Go. It provides a read–eval–print loop (REPL) with built-in commands, piping, I/O redirection, and raw terminal handling.
 
-In this challenge, you'll build your own POSIX compliant shell that's capable of
-interpreting shell commands, running external programs and builtin commands like
-cd, pwd, echo and more. Along the way, you'll learn about shell command parsing,
-REPLs, builtin commands, and more.
+---
 
-**Note**: If you're viewing this repo on GitHub, head over to
-[codecrafters.io](https://codecrafters.io) to try the challenge.
+## Tags
 
-# Passing the first stage
+`go` · `shell` · `repl` · `terminal` · `cli` · `unix` · `parser` · `builtins`
 
-The entry point for your `shell` implementation is in `app/main.go`. Study and
-uncomment the relevant code, and push your changes to pass the first stage:
+---
 
-```sh
-git commit -am "pass 1st stage" # any msg
-git push origin master
+## Features
+
+### Core
+
+- **Interactive REPL** — Raw terminal mode with prompt (configurable via `PS` env var).
+- **Built-in commands** — `cd`, `pwd`, `echo`, `exit`, `type`, `history`.
+- **External programs** — Run any executable from `PATH`.
+- **Piping** — Chain commands with `|` (e.g. `ls | head -5`).
+- **I/O redirection** — `<` and `>` for stdin/stdout (including `2>` for stderr).
+
+### UX
+
+- **History** — Up/Down arrows, persisted via `HISTFILE`.
+- **Tab completion** — Builtins and executables; double-tab lists options.
+- **Ctrl+C** — Interrupt current line.
+- **Ctrl+D** — Exit (after saving history).
+- **`.shellrc`** — Optional config file loaded at startup.
+
+### Implementation
+
+- **Parser** — Tokenizer/lexer with quoted strings (`'` and `"`), escapes, and redirects.
+- **No forking for builtins** — Builtins run in-process; external commands via `exec`.
+- **Structured commands** — Parsed into commands with args and redirects, then executed in order with pipes.
+
+---
+
+## Install
+
+### Prerequisites
+
+- **Go 1.25+** — [Install Go](https://go.dev/doc/install) if needed.
+- Unix-like environment (Linux, macOS, WSL).
+
+### From source
+
+1. **Clone the repository**
+
+   ```bash
+   git clone https://github.com/yourusername/gosh.git
+   cd gosh
+   ```
+
+2. **Build the binary**
+
+   ```bash
+   make build
+   ```
+
+   Or without Make:
+
+   ```bash
+   go build -o gosh app/*.go
+   ```
+
+   This produces a `gosh` binary in the current directory.
+
+3. **(Optional) Install to your PATH**
+
+   - **User install** (recommended): copy into a directory that’s on your `PATH`, e.g. `~/bin`:
+
+     ```bash
+     mkdir -p ~/bin
+     cp gosh ~/bin/
+     ```
+
+     Ensure `~/bin` is in your `PATH` (e.g. add `export PATH="$HOME/bin:$PATH"` to your shell config).
+
+   - **System-wide**: install to `/usr/local/bin` (may require `sudo`):
+
+     ```bash
+     sudo cp gosh /usr/local/bin/
+     ```
+
+4. **Run gosh**
+
+   ```bash
+   ./gosh
+   ```
+
+   Or, if you installed it to your PATH:
+
+   ```bash
+   gosh
+   ```
+
+---
+
+## Development
+
+| Command            | Description                    |
+|--------------------|--------------------------------|
+| `make build`       | Build `gosh` binary            |
+| `make run`         | Build and run `gosh`           |
+| `make test`        | Run tests                      |
+| `make test-coverage` | Tests + HTML coverage report |
+| `make lint`        | Run golangci-lint (if installed) |
+| `make help`        | List all targets               |
+
+---
+
+## Project structure
+
+```
+.
+├── app/
+│   ├── main.go      # Entry point, REPL loop, raw terminal
+│   ├── parser.go    # Tokenizer & command parser
+│   ├── command.go   # Builtins (cd, pwd, echo, type, exit, history)
+│   ├── execute.go   # Command execution, piping, redirects
+│   ├── trie.go      # Tab completion (Trie)
+│   ├── history.go   # History storage and navigation
+│   ├── file.go      # File/executable lookup
+│   ├── setup.go     # .shellrc loading
+│   ├── color.go     # Color helpers
+│   └── util.go      # Shared utilities
+├── .shellrc         # Optional shell config
+├── Makefile
+├── go.mod
+└── README.md
 ```
 
-Time to move on to the next stage!
-
-# Stage 2 & beyond
-
-Note: This section is for stages 2 and beyond.
-
-1. Ensure you have `go (1.25)` installed locally
-1. Run `./your_program.sh` to run your program, which is implemented in
-   `app/main.go`.
-1. Commit your changes and run `git push origin master` to submit your solution
-   to CodeCrafters. Test output will be streamed to your terminal.
-
-<br>
+---
 
 ## Resources
 
-[os/exec patterns](https://www.dolthub.com/blog/2022-11-28-go-os-exec-patterns/)
+- [os/exec patterns (Go)](https://www.dolthub.com/blog/2022-11-28-go-os-exec-patterns/)
+- [Beej's Guide to Unix IPC](https://beej.us/guide/bgipc/)
 
-[InterProcessCommunication](https://beej.us/guide/bgipc/)
+---
+
+## License
+
+See repository for license information.
