@@ -17,8 +17,6 @@ jobs:
             artifact_name: gosh-linux-amd64
           - runs-on: macos-latest
             artifact_name: gosh-darwin-arm64
-          - runs-on: macos-13  # Intel Mac (x64)
-            artifact_name: gosh-darwin-amd64
     runs-on: ${{ matrix.runs-on }}
     steps:
       - uses: actions/checkout@v4
