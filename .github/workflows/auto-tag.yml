@@ -5,10 +5,18 @@ on:
     branches: [main]
 
 jobs:
-  tag-and-release:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runs-on: ubuntu-latest
+            artifact_name: gosh-linux-amd64
+          - runs-on: macos-latest
+            artifact_name: gosh-darwin-arm64
+          - runs-on: macos-13
+            artifact_name: gosh-darwin-amd64
+    runs-on: ${{ matrix.runs-on }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -24,6 +32,25 @@ jobs:
 
       - name: Build
         run: go build -o gosh app/*.go
+
+      - name: Rename binary
+        run: mv gosh ${{ matrix.artifact_name }}
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact_name }}
+          path: ${{ matrix.artifact_name }}
+
+  tag-and-release:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Get latest tag and bump patch
         id: bump
@@ -50,11 +77,21 @@ jobs:
           git tag ${{ steps.bump.outputs.new_tag }}
           git push origin ${{ steps.bump.outputs.new_tag }}
 
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+
+      - name: Flatten artifacts for release
+        run: |
+          for dir in gosh-*/; do
+            [ -d "$dir" ] && cp "$dir"* . 2>/dev/null || true
+          done
+          ls -la gosh-*
+
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.bump.outputs.new_tag }}
-          files: gosh
+          files: gosh-*
           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
