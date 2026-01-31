@@ -95,6 +95,18 @@
    gosh
    ```
 
+### From a release (GitHub)
+
+Push a tag (e.g. `v1.0.0`) to trigger a [GitHub Release](https://github.com/yourusername/gosh/releases) with a Linux binary attached. Download `gosh-linux-amd64` from the latest release.
+
+---
+
+## CI / Releases
+
+- **Runs on:** push to `main`, pull requests targeting `main`, and tag pushes `v*`.
+- **Artifacts:** Each run builds the binary; download it from the [Actions](https://github.com/yourusername/gosh/actions) run summary (Artifacts).
+- **Releases:** Pushing a tag (e.g. `git push origin v1.0.0`) creates a GitHub Release and attaches the built binary.
+
 ---
 
 ## Development
