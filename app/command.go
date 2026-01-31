@@ -244,6 +244,9 @@ func typeBuiltin(args []string, stdin io.Reader, stdout io.Writer, stderr io.Wri
 
 // exit builtin
 func exitBuiltin(args []string, stdin io.Reader, stdout io.Writer, stderr io.Writer) error {
+	if path, ok := os.LookupEnv("HISTFILE"); ok {
+		history.AppendHistory(path)
+	}
 	os.Exit(0)
 	return nil
 }
@@ -288,6 +291,9 @@ func GetHistory() *History {
 
 	once.Do(func() {
 		history = &History{commands: make([]string, 0)}
+		if path, ok := os.LookupEnv("HISTFILE"); ok {
+			history.LoadHistory(path)
+		}
 	})
 
 	return history
